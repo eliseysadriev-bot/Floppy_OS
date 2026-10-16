@@ -1,4 +1,4 @@
-# CoralOS v0.01
+# Floppy 0.1
 
 **CoralOS** is an independent 16-bit operating system for programmers, written from scratch in pure x86 Assembly. The system features its own custom kernel, text editor, calculator, and the **FSM** (Files System Manager) file system.
 
