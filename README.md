@@ -1,9 +1,4 @@
 Floppy 1.0
-<img width="700" height="600" alt="image" src="https://github.com/user-attachments/assets/58077a3e-d562-4cf5-ba25-cd15ce5beed8" />
-<img width="700" height="600" alt="image" src="https://github.com/user-attachments/assets/413c675d-d387-42ec-8a66-aced3ca62507" />
-<img width="700" height="600" alt="image" src="https://github.com/user-attachments/assets/4cb3bbf5-fc4e-40eb-979c-e14c286081df" />
-<img width="700" height="600" alt="image" src="https://github.com/user-attachments/assets/1e139806-a85d-4821-a88b-43299dd341ac" />
-
 
 A hobby operating system written in NASM assembly.
 
@@ -41,3 +36,8 @@ Status
 Early and experimental so bugs are expected. Made for fun and to learn assembly.
 
 License is in the LICENSE file.
+
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/58077a3e-d562-4cf5-ba25-cd15ce5beed8" />
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/413c675d-d387-42ec-8a66-aced3ca62507" />
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/4cb3bbf5-fc4e-40eb-979c-e14c286081df" />
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/1e139806-a85d-4821-a88b-43299dd341ac" />
