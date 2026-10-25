@@ -1,45 +1,43 @@
-Floppy 1.0
+Дискета 1.0
 
-The code was created by AI.
+Операционная система для хобби, написанная на ассемблере NASM.
 
-A hobby operating system written in NASM assembly.
+Вся система была создана с помощью искусственного интеллекта. Автор разрабатывает и тестирует его, а большую часть кода пишет ИИ.
 
-The whole system was made with the help of AI. The author designs and tests it and the AI writes most of the code.
+О системе
+- 32-битное ядро защищенного режима с собственным 16-битным загрузчиком
+- Графика 800x600 с 16 цветами и собственными драйверами мыши и клавиатуры
+- Черный, белый, серый и синий выглядят с жесткими тенями
+- Рабочий стол с перетаскиваемыми и изменяемыми по размеру окнами и часами
+- Окна «О нас» и «Настройки»
+- Курсоры мыши для стрелок, рук, текста и изменения размера, а также занятый курсор с экраном загрузки
 
-About the system
-- 32-bit protected mode kernel with its own 16-bit bootloader
-- 800x600 graphics with 16 colors and its own mouse and keyboard drivers
-- Black white gray and blue look with hard shadows
-- Desktop with draggable and resizable windows and a clock
-- About and Settings windows
-- Mouse cursors for arrow and hand and text and resize and a busy cursor with a Loading screen
+Программы
+- FloText — текстовый редактор с функцией выбора мыши, копирования, вырезания и вставки
+- FloPaint — это программа для рисования с инструментами, ползунком кисти и палитрой, а также функцией отмены и заполнения
+- FloFile — файловый менеджер с папками, функциями переименования и удаления, а также списком дисков
+- FloCalc — калькулятор
+- Boil — это небольшая игра, в которой вы останавливаете микроволновку в определенное время, а запись сохраняется в файле
+- Открыть и сохранить в окнах, общих для программ
 
-Programs
-- FloText is a text editor with mouse selection and copy cut and paste
-- FloPaint is a drawing program with tools and a brush slider and a palette and undo and fill
-- FloFile is a file manager with folders and rename and delete and a list of disks
-- FloCalc is a calculator
-- Boil is a small game where you stop the microwave at the exact time and the record is saved in a file
-- Open and Save to windows shared by the programs
+Система
+- Собственная файловая система с папками
+- Три диска C и O и I и пустой диск форматируются автоматически
+- Системная папка flopsys на диске C с программами и играми
+- Программы представляют собой отдельные модули .sys, загружаемые загрузчиком
+- Полосы прокрутки и ползунки везде, куда-то что-то не помещается
 
-System
-- Own file system with folders
-- Three disks C and O and I and an empty disk is formatted automatically
-- System folder flopsys on disk C with programs and games
-- Programs are separate .sys modules loaded by the bootloader
-- Scrollbars and sliders everywhere something does not fit
+Как бегать
+Вам нужны NASM и QEMU или Bochs 3.1.
+- Windows запускает build.bat для QEMU или run_bochs.bat для Bochs
+- Linux и macOS запускают build.sh
 
-How to run
-You need NASM and QEMU or Bochs 3.1.
-- Windows run build.bat for QEMU or run_bochs.bat for Bochs
-- Linux and macOS run build.sh
+Статус
+Ранний и экспериментальный, поэтому ожидаются ошибки. Сделано для развлечения и обучения сборке.
 
-Status
-Early and experimental so bugs are expected. Made for fun and to learn assembly.
+Лицензия находится в файле LICENSE.
 
-License is in the LICENSE file.
-
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/58077a3e-d562-4cf5-ba25-cd15ce5beed8" />
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/413c675d-d387-42ec-8a66-aced3ca62507" />
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/4cb3bbf5-fc4e-40eb-979c-e14c286081df" />
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/1e139806-a85d-4821-a88b-43299dd341ac" />
+<имг ширина="600" высота="400" альт="изображение" источник="https://github.com/user-attachments/assets/58077a3e-d562-4cf5-ba25-cd15ce5beed8" />
+<имг ширина="600" высота="400" альт="изображение" источник="https://github.com/user-attachments/assets/413c675d-d387-42ec-8a66-aced3ca62507" />
+<имг ширина="600" высота="400" альт="изображение" источник="https://github.com/user-attachments/assets/4cb3bbf5-fc4e-40eb-979c-e14c286081df" />
+<имг ширина="600" высота="400" альт="изображение" источник="https://github.com/user-attachments/assets/1e139806-a85d-4821-a88b-43299dd341ac" />
