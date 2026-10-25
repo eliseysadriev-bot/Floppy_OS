@@ -1,5 +1,7 @@
 Floppy 1.0
 
+The code was created by AI.
+
 A hobby operating system written in NASM assembly.
 
 The whole system was made with the help of AI. The author designs and tests it and the AI writes most of the code.
