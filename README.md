@@ -4,8 +4,9 @@ Floppy OS is a hobbyist 32-bit operating system written in NASM assembly languag
 
 The operating system was developed with the help of artificial intelligence. The author designs features, makes development decisions, tests the system, and finds bugs, while AI generates most of the source code.
 
-## request
-Also, my project is very hard to find, and it’s not very popular. If anyone can and wants to, they can promote the project, write articles, talk about my project, make videos and reviews. I’m not forcing anyone; it’s all up to you. I just want to make sure the project doesn’t remain in the shadows.
+## A Small Request
+My project is still hard to find and isn't very well-known. If anyone wants to help spread the word, feel free to promote Floppy OS, write articles about it, make videos, or share reviews.
+It's entirely up to you. I just don't want this project to remain in the shadows.
 
 ## About the System
 
