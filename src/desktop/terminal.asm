@@ -37,8 +37,7 @@ tr_reset:
     mov [tr_col], eax
     mov al, [sys_dsk]
     mov [tr_dsk], al
-    mov byte [tr_par], 0
-    mov byte [tr_dep], 0
+    call tr_root
     mov byte [tr_inlen], 0
     mov byte [tr_selected], 0
     mov byte [tr_sel_drag], 0
@@ -163,7 +162,8 @@ tr_2d:
 tr_path:
     pushad
     movzx eax, byte [tr_dsk]
-    mov al, [tr_dl + eax]
+    imul eax, DT_ESZ
+    mov al, [dtab + eax]
     call tr_ch
     mov al, ':'
     call tr_ch
@@ -594,32 +594,75 @@ tr_exec:
     mov al, 0
     call tr_msg
 .x: mov byte [fs_par], 0
+    mov dword [fs3_folder_id], 0
     popad
     ret
 
-; Диск: c: o: i:
+; Open any formatted disk listed in FloFile.
 tr_drive:
-    mov al, [esi]
-    or al, 0x20
+    mov dl, [esi]
+    or dl, 0x20
     xor ebx, ebx
-.f: cmp al, [tr_dlw + ebx]
-    je .ok
+.find:
+    imul eax, ebx, DT_ESZ
+    mov al, [dtab + eax]
+    test al, al
+    jz .next
+    or al, 0x20
+    cmp al, dl
+    je .mount
+.next:
     inc ebx
-    cmp ebx, 3
-    jb .f
+    cmp ebx, DT_N
+    jb .find
     mov al, 0
     jmp tr_msg
-.ok:mov dl, [tr_dsk]
-    mov [tr_dsk], bl
-    movzx eax, bl
+.mount:
+    mov eax, ebx
     call fs_setdisk
-    jc .no
-    mov byte [tr_dep], 0
-    mov byte [tr_par], 0
-    ret
-.no:mov [tr_dsk], dl
+    jnc .selected
+    cmp byte [lst_st], 3
+    jne .not_ready
+.selected:
+    mov [tr_dsk], bl
+    jmp tr_root
+.not_ready:
     mov al, 4
     jmp tr_msg
+
+tr_root:
+    mov byte [tr_dep], 0
+    mov byte [tr_par], 0
+    mov word [tr_fs3par], 0
+    ret
+
+; Navigation accepts FSM3; legacy commands still use tr_fs.
+tr_mount:
+    mov al, [tr_dsk]
+    call fs_setdisk
+    jnc .legacy
+    cmp byte [lst_st], 3
+    jne .bad
+    movzx eax, word [tr_fs3par]
+    mov [fs3_folder_id], eax
+    call fs3_catalog_count
+    jnc .ready
+.bad:
+    mov al, 4
+    call tr_msg
+    stc
+    ret
+.legacy:
+    mov al, [tr_par]
+    mov [fs_par], al
+.ready:
+    clc
+    ret
+
+tr_find_current:
+    cmp byte [fs_state], 3
+    je fs3o_find
+    jmp dir_find
 
 ; Диск и папка терминала становятся текущими. CF = диска нет
 tr_fs:
@@ -866,7 +909,7 @@ cmd_echo:
     jmp tr_msg
 
 cmd_dir:
-    call tr_fs
+    call tr_mount
     jc .r
     cmp byte [tr_mode], 0
     jne .dh
@@ -878,6 +921,8 @@ cmd_dir:
     call tr_path
     call tr_nl
 .dl:
+    cmp byte [fs_state], 3
+    je tr_fs3_dir
     mov byte [lst_dirs], 1
     movzx eax, byte [tr_dsk]
     mov edi, tr_lb
@@ -930,6 +975,55 @@ cmd_dir:
     jmp tr_say
 .r: ret
 
+tr_fs3_dir:
+    xor ebx, ebx
+    xor ebp, ebp
+.sector:
+    mov eax, ebx
+    shl eax, 3
+    call fs3_dir_read
+    jc .error
+    mov ecx, 8
+.entry:
+    cmp byte [edi + 24], 0
+    je .next
+    mov ax, [tr_fs3par]
+    cmp [edi + 26], ax
+    jne .next
+    inc ebp
+    mov esi, edi
+    call tr_puts
+    mov al, ' '
+    call tr_ch
+    cmp byte [edi + 24], 2
+    je .folder
+    mov eax, [edi + 16]
+    call tr_num
+    mov esi, s_trb
+    jmp .line
+.folder:
+    mov esi, s_trdt
+.line:
+    call tr_say
+.next:
+    add edi, 64
+    loop .entry
+    inc ebx
+    cmp ebx, FS3_DIRN
+    jb .sector
+    test ebp, ebp
+    jnz .count
+    mov esi, s_trempty
+    jmp tr_say
+.count:
+    mov eax, ebp
+    call tr_num
+    mov esi, s_tri
+    jmp tr_say
+.error:
+    mov al, 4
+    jmp tr_msg
+
 cmd_cd:
     mov esi, [tr_arg]
     cmp byte [esi], 0
@@ -941,9 +1035,7 @@ cmd_cd:
     cmp byte [esi], '/'
     jne .b
 .top:
-    mov byte [tr_dep], 0
-    mov byte [tr_par], 0
-    ret
+    jmp tr_root
 .b: cmp word [esi], '..'
     jne .c
     cmp byte [esi + 2], 0
@@ -953,18 +1045,21 @@ cmd_cd:
     dec byte [tr_dep]
     movzx ebx, byte [tr_dep]
     mov byte [tr_par], 0
+    mov word [tr_fs3par], 0
     test ebx, ebx
     jz .r
     mov al, [tr_stk + ebx - 1]
     mov [tr_par], al
+    mov ax, [tr_fs3stk + ebx*2 - 2]
+    mov [tr_fs3par], ax
 .r: ret
 .c: mov edi, tr_t1
     call tr_tok
     jc .np
-    call tr_fs
+    call tr_mount
     jc .r
     mov esi, tr_t1
-    call dir_find
+    call tr_find_current
     jnc .found
     ; Directory names are often stored lowercase (e.g. flopsys).
     ; Retry with lowercase ASCII so `cd FLOPSYS` also succeeds.
@@ -984,9 +1079,23 @@ cmd_cd:
     jmp .lower
 .retry:
     mov esi, tr_t1
-    call dir_find
+    call tr_find_current
     jc .np
 .found:
+    movzx ebx, byte [tr_dep]
+    cmp ebx, 8
+    jae .np
+    mov byte [tr_stk + ebx], 0
+    mov word [tr_fs3stk + ebx*2], 0
+    cmp byte [fs_state], 3
+    jne .legacy
+    cmp byte [edi + 24], 2
+    jne .np
+    inc eax
+    mov [tr_fs3stk + ebx*2], ax
+    mov [tr_fs3par], ax
+    jmp .name
+.legacy:
     cmp byte [edi + 15], 1
     jne .np
     cmp byte [tr_dep], 8
@@ -995,6 +1104,7 @@ cmd_cd:
     movzx ebx, byte [tr_dep]
     mov [tr_stk + ebx], al
     mov [tr_par], al
+.name:
     shl ebx, 4
     add ebx, tr_pth
     ; Copy the real directory name (not the typed casing) into the prompt.
@@ -1674,19 +1784,26 @@ cmd_disk:
 ; disks - какие диски есть
 cmd_disks:
     mov dword [tr_i], 0
-.l: cmp dword [tr_i], 3
+.l: cmp dword [tr_i], DT_N
     jae .e
+    imul eax, [tr_i], DT_ESZ
+    mov al, [dtab + eax]
+    test al, al
+    jz .next
+    push eax
     mov esi, s_tfdk
     call tr_puts
-    mov eax, [tr_i]
-    mov al, [tr_dl + eax]
+    pop eax
     call tr_ch
     mov eax, [tr_i]
     call fs_setdisk
     jnc .ok
+    cmp byte [lst_st], 3
+    je .ok
     mov esi, s_tfnone
     call tr_puts
 .ok:call tr_nl
+.next:
     inc dword [tr_i]
     jmp .l
 .e: ret
@@ -1859,8 +1976,8 @@ tr_vr       dd 0
 tr_fl       dd 0
 tr_rl       dd 0
 tr_ry       dd 0
-tr_dl       db "COI"
-tr_dlw      db "coi"
+tr_fs3par   dw 0
+tr_fs3stk   times 8 dw 0
 s_trt       db "Terminal", 0
 s_trban     db "Floppy 1.1 Terminal", 0
 s_trhint    db "Type help", 0

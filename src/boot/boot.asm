@@ -58,6 +58,12 @@ start:
     mov dl, [bdrv]
     int 0x13
     jc fail
+    mov ax, 0x8800             ; contiguous extended memory, in KiB
+    int 0x15
+    jnc .memory
+    xor ax, ax
+.memory:
+    mov [0x504], ax
     mov ax, 0x1130              ; где в памяти лежит шрифт 8x16 (пока BIOS ещё работает)
     mov bh, 6
     int 0x10

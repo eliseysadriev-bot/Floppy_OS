@@ -159,6 +159,8 @@ lba_write:
     rep outsw
     call ata_wait_bsy
     jc .f
+    test al, 0x21                    ; ATA error or device fault after transfer
+    jnz .f
     popad
     clc
     ret
@@ -179,6 +181,10 @@ ata_flush:
     mov al, 0xE7
     out dx, al
     call ata_wait_bsy
+    jc .r
+    test al, 0x21                    ; ATA error or device fault after flush
+    jz .r
+    stc
 .r: popad
     ret
 
@@ -293,16 +299,19 @@ fs_mount:
     mov byte [fs_ok], 0
     mov byte [fs_state], 2
     mov byte [fs3_seen], 0
+    mov eax, [cur_size]
+    test eax, eax
+    jz .primary
+    cmp eax, FS_NEW
+    jbe .small_volume                ; the standard header sector is outside this volume
+.primary:
     mov eax, FS_NEW
     call fs_try
     jnc .found
     ; Preserve the diagnosis from LBA 512. LBA 64 lies INSIDE the kernel
     ; on a freshly built pm.img, so its nonzero contents are normal.
     cmp byte [fs_state], 3           ; recognized FSM3: validate header/mirror, never fall back
-    jne .notfsm3
-    mov byte [fs3_seen], 1
-    call fs3_validate
-    jmp .out
+    je .fsm3
 .notfsm3:
     cmp byte [fs_state], 5           ; I/O error: don't guess
     je .out
@@ -311,8 +320,23 @@ fs_mount:
     mov eax, FS_OLD
     call fs_try
     jnc .found
-    mov al, [fs_primary_state]       ; ignore non-FSM2 data at old location
+    cmp dword [cur_size], 0
+    je .restore_primary
+    cmp byte [fs_state], 3
+    je .fsm3
+.restore_primary:
+    mov al, [fs_primary_state]       ; LBA 64 is part of the kernel on the boot disk
     mov [fs_state], al
+    jmp .out
+.small_volume:
+    mov eax, FS_OLD
+    call fs_try
+    jnc .found
+    cmp byte [fs_state], 3
+    jne .out
+.fsm3:
+    mov byte [fs3_seen], 1
+    call fs3_validate
     jmp .out
 .found:
     ; Validate all geometry before any FAT or directory access.
@@ -807,19 +831,28 @@ fat_set:
 
 ; Занять свободный кусок -> eax. CF = нет места
 fat_alloc:
+    xor eax, eax
+; EAX = first cluster to consider. Streams allocate in ascending order.
+fat_alloc_from:
     push ebx
     push ecx
     push edx
     push esi
-    mov dword [f_base], 0
+    cmp eax, [fs_nclus]
+    jae .err
+    mov edx, eax
+    and edx, 127
+    and eax, -128
+    mov [f_base], eax
+    shr eax, 7
     mov ecx, [fs_fat]
+    add ecx, eax
 .sec:
     mov eax, ecx
     mov ebx, FAT_BUF
     call lba_read
     jc .err
-    mov esi, FAT_BUF
-    xor edx, edx
+    lea esi, [FAT_BUF + edx * 4]
 .ent:
     mov eax, [f_base]
     add eax, edx
@@ -847,9 +880,12 @@ fat_alloc:
     inc edx
     cmp edx, 128
     jb .ent
+    xor edx, edx
     add dword [f_base], 128
     inc ecx
-    jmp .sec
+    mov eax, [f_base]
+    cmp eax, [fs_nclus]
+    jb .sec
 .err:
     pop esi
     pop edx
@@ -1683,12 +1719,12 @@ scan_dir:
     jz .n
     cmp eax, [fs_nclus]
     jae .n
-    mov ecx, [esi + 16]                ; size in sectors
-    test ecx, ecx
+    mov ebx, [esi + 16]                ; size in sectors; ECX counts directory slots
+    test ebx, ebx
     jz .n
     mov edx, [fs_nclus]
     sub edx, eax                       ; remaining host data sectors
-    cmp ecx, edx
+    cmp ebx, edx
     ja .n
     mov al, [esi + 1]
     mov [edi], al
@@ -1697,8 +1733,7 @@ scan_dir:
     mov eax, [esi + 20]
     add eax, [fsd_start]
     mov [edi + 2], eax
-    mov eax, [esi + 16]
-    mov [edi + 6], eax
+    mov [edi + 6], ebx
 .n: add esi, 32
     dec ecx
     jnz .e

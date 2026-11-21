@@ -100,6 +100,8 @@ dlg_open_in:
     mov byte [dl_anc], 0xFF
     mov byte [dl_nohint], 0
     mov byte [dl_par], 0
+    mov word [dl_fs3par], 0
+    mov byte [dl_fs3page], 0
     mov byte [dl_dep], 0
     mov byte [dl_sel], 0xFF
     mov byte [dl_ren], 0
@@ -178,8 +180,20 @@ dlg_list:
     cmp byte [d2_dlg], 2                ; Open в itge: ещё .pcf и .txt
     jne .le
     mov dword [lst_ext], 1
-.le:mov dl, [dl_par]
+.le:
+    mov dl, [dl_par]
     mov [fs_par], dl
+    cmp byte [dl_app], 0
+    jne .list
+    call fs_setdisk
+    cmp byte [lst_st], 3
+    jne .list
+    mov dword [lst_ext], 0
+    movzx edx, word [dl_fs3par]
+    mov [fs3_folder_id], edx
+    mov dl, [dl_fs3page]
+    mov [fs_par], dl
+.list:
     mov byte [lst_dirs], 1
     call fs_list
     mov byte [lst_dirs], 0
@@ -193,6 +207,18 @@ dlg_list:
     mov al, [lst_n]
     mov [dl_cnt], al
     mov al, [lst_st]
+    mov byte [dl_fs3], 0
+    cmp al, 4
+    jne .status
+    cmp byte [dl_app], 0
+    jne .status
+    mov byte [dl_fs3], 1
+    mov esi, fs3_list_hi
+    mov edi, dl_ids_hi
+    mov ecx, 8
+    rep movsd
+    xor eax, eax
+.status:
     mov [dl_st], al
     popad
     ret
@@ -911,10 +937,30 @@ dlg_key:
     je .cancel
     cmp al, 13
     je .ok
+    cmp byte [dl_fs3], 0
+    je .mode
+    cmp al, 14
+    je .next_page
+    cmp al, 16
+    je .prev_page
+.mode:
     cmp byte [d2_dlg], 2                ; при открытии поля имени нет: остальные клавиши не нужны
     jne .kk
     cmp byte [dl_ren], 0
     je .r
+    jmp .kk
+.next_page:
+    cmp byte [dl_fs3page], 31
+    jae .r
+    inc byte [dl_fs3page]
+    jmp .page
+.prev_page:
+    cmp byte [dl_fs3page], 0
+    je .r
+    dec byte [dl_fs3page]
+.page:
+    call dlg_newdir
+    jmp .r
 .kk:cmp al, 8
     je .bs
     cmp al, 1
@@ -991,14 +1037,24 @@ dlg_ok:
     je .r
     mov esi, dl_name
     call dl_mkname
-    mov al, [dl_disk]
-    call fs_setdisk
-    jc .r
+    call dlg_mount_file
+    jc .error
     cmp byte [d2_dlg], 2
     je .open
-    mov esi, fn_buf                     ; сохранить: такой файл уже есть?
+    mov byte [dl_replace], 0
+    mov esi, fn_buf
+    cmp byte [lst_st], 3
+    jne .legacy
+    call fs3o_find
+    jnc .replace
+    cmp eax, -1
+    jne .error
+    jmp .go
+.legacy:
     call dir_find
     jc .go
+.replace:
+    mov byte [dl_replace], 1
     mov byte [d2_conf], 1               ; спросить, заменить ли
     mov eax, [dlg_w]
     sub eax, 320
@@ -1029,7 +1085,28 @@ dlg_ok:
     call paint_open_named
     jmp .r
 .io:call itge_open_named
+    jmp .r
+.error:
+    mov al, 0x36
+    call core_err_raise
 .r: popad
+    ret
+
+dlg_mount_file:
+    mov al, [dl_disk]
+    call fs_setdisk
+    jnc .ready
+    cmp byte [dl_app], 0
+    jne .bad
+    cmp byte [lst_st], 3
+    jne .bad
+    movzx eax, word [dl_fs3par]
+    mov [fs3_folder_id], eax
+.ready:
+    clc
+    ret
+.bad:
+    stc
     ret
 
 dl_mkname:
@@ -1049,10 +1126,13 @@ dlg_conf_yes:
     mov byte [dl_conf_min], 0
     mov esi, dl_name
     call dl_mkname
-    mov al, [dl_disk]
-    call fs_setdisk
-    jc .r
+    call dlg_mount_file
+    jc .error
     call dlg_commit
+    jmp .r
+.error:
+    mov al, 0x36
+    call core_err_raise
 .r: popad
     ret
 
@@ -1074,11 +1154,16 @@ dlg_commit:
     jmp .wr
 .it:call itge_pack                     ; Export из itge теперь тоже .sga
     jmp .wr
-.tx:call text_pack
+.tx:
+    mov esi, fn_buf
+    mov dl, [dl_replace]
+    call text_write_to
+    jmp .written
 .wr:mov esi, fn_buf
     call file_write
+.written:
     mov byte [fs_par], 0
-    jc .r
+    jc .error
     cmp byte [dl_app], 3                ; экспорт: имя документа не меняется
     jne .ne
     mov byte [d2_dlg], 0
@@ -1100,6 +1185,11 @@ dlg_commit:
     mov [ebx], al
     mov al, [dl_par]
     mov [ebx + 1], al                   ; t2_par / pa_par / it_par
+    cmp byte [dl_app], 0
+    jne .copy_name
+    movzx eax, word [dl_fs3par]
+    mov [t2_fs3parent], eax
+.copy_name:
     mov esi, fn_buf                     ; имя целиком, с расширением
 .c: lodsb
     stosb
@@ -1143,6 +1233,13 @@ dlg_commit:
     call paint_close
     jmp .r
 .ci:call itge_close
+    jmp .r
+.error:
+    call wait_end
+    mov al, 0x36
+    call core_err_raise
+    popad
+    ret
 .r: call wait_end
     popad
     ret
@@ -1348,6 +1445,9 @@ dlg_press:
     mov [dl_dep], bl
     mov al, [dl_stk + ebx]
     mov [dl_par], al
+    mov ax, [dl_fs3stk + ebx*2]
+    mov [dl_fs3par], ax
+    mov byte [dl_fs3page], 0
     jmp dlg_newdir
 .nup:
     cmp al, 60
@@ -1379,6 +1479,8 @@ dlg_press:
     sub al, 42
     mov [dl_disk], al
     mov byte [dl_par], 0
+    mov word [dl_fs3par], 0
+    mov byte [dl_fs3page], 0
     mov byte [dl_dep], 0
     mov byte [dl_scr], 0
     mov byte [dl_sel], 0xFF
@@ -1431,10 +1533,19 @@ dlg_press:
     jae .r
     mov dl, [dl_par]
     mov [dl_stk + ebx], dl
+    mov dx, [dl_fs3par]
+    mov [dl_fs3stk + ebx*2], dx
     inc byte [dl_dep]
     shr esi, 4
     mov al, [dl_ids + esi]
+    cmp byte [dl_fs3], 1
+    je .fs3_dir
     mov [dl_par], al
+    jmp dlg_newdir
+.fs3_dir:
+    mov ah, [dl_ids_hi + esi]
+    mov [dl_fs3par], ax
+    mov byte [dl_fs3page], 0
     jmp dlg_newdir
 .nfo:
     mov byte [dl_dbl], 0
@@ -1455,11 +1566,13 @@ dlg_press:
     movzx esi, al
     shl esi, 4
     add esi, dl_names
-    mov edi, dl_name                    ; имя без .txt - в поле имени
+    mov edi, dl_name
     xor ecx, ecx
 .cp:mov al, [esi]
     test al, al
     jz .cpe
+    cmp byte [dl_fs3], 0
+    jne .exact
     cmp al, '.'
     jne .nsc
     cmp byte [dl_app], 0                ; FloText: файл .sec остаётся с расширением (пасхалка)
@@ -1470,9 +1583,14 @@ dlg_press:
     add edi, 4
     add ecx, 4
     jmp .cpe
+.exact:
+    cmp ecx, 14
+    jb .put_name
+    jmp .cpe
 .nsc:
     cmp ecx, 10
     jae .cpe
+.put_name:
     mov [edi], al
     inc edi
     inc esi
@@ -1492,6 +1610,8 @@ dlg_press:
 ; Правая кнопка в окне Open: выбрать файл под мышью и показать меню Rename / Delete
 dlg_rclick:
     pushad
+    cmp byte [dl_fs3], 0
+    jne .r
     cmp byte [d2_conf], 0
     jne .r
     cmp byte [dl_ren], 0
@@ -1620,6 +1740,12 @@ dl_par      db 0
 dl_dep      db 0
 dl_stk      times 4 db 0
 dl_ids      times 32 db 0
+dl_fs3      db 0
+dl_fs3page  db 0
+dl_fs3par   dw 0
+dl_fs3stk   times 4 dw 0
+dl_ids_hi   times 32 db 0
+dl_replace  db 0
 s_up        db "Up", 0
 s_slash     db "/", 0
 dl_ren      db 0                        ; 1 - идёт переименование

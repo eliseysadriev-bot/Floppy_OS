@@ -13,3 +13,4 @@ TAPI text_open_named
 TAPI text_exit                     ; appended: keep previous API offsets fixed
 TAPI text_changed
 TAPI text_snapshot
+TAPI text_write_to

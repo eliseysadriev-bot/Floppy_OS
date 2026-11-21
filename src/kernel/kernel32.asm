@@ -1808,6 +1808,17 @@ sb_params:
     mov dword [sb_vp], fl_sbo
     ret
 .tx:call tx_total                       ; FloText
+    cmp byte [txl_mode], 0
+    je .grid
+    mov edi, eax
+    mov eax, 86
+    mov ebx, [m_y]
+    mov ecx, 512
+    mov esi, 16
+    mov ebp, [txl_top]
+    mov dword [sb_vp], txl_top
+    ret
+.grid:
     shl eax, 5
     mov edi, eax
     mov eax, 86
@@ -1895,7 +1906,9 @@ win_show:
     shr eax, 5
     mov [fl_scr], al
     jmp files_draw
-.tx:mov eax, [t2_sbo]
+.tx:cmp byte [txl_mode], 0
+    jne text_draw
+    mov eax, [t2_sbo]
     shr eax, 5
     mov [t2_top], al
     jmp text_draw
@@ -1913,6 +1926,11 @@ sb_set:
     jb .ns
     cmp byte [sb_ctx], 3
     ja .ns
+    jne .text_snap
+    jmp .snap
+.text_snap:
+    cmp byte [txl_mode], 0
+    jne .ns
 .snap:
     and eax, -32
 .ns:    mov edi, [sb_vp]
@@ -5173,6 +5191,7 @@ flop_img:
 %include "src/filesystems/fs3_write.asm"
 %include "src/filesystems/fs3_ops.asm"
 %include "src/filesystems/fs3_stream.asm"
+%include "src/filesystems/fs3_transfer.asm"
 %include "src/filesystems/fs3_test.asm"
 %include "src/kernel/sysinst.asm"
 %include "src/desktop/dialog.asm"

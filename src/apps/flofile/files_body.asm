@@ -1072,7 +1072,7 @@ files_key:
     movzx eax, byte [fl_sel]
     jmp fl_copy
 .cc:
-    cmp al, 22                          ; Ctrl+V - FSM3 in-volume copy
+    cmp al, 22                          ; Ctrl+V - paste to FSM3
     jne .arrow_up
     cmp byte [fl_fs3view], 1
     jne .r
@@ -1108,7 +1108,7 @@ files_key:
     jmp files_draw
 .r: ret
 
-; Запомнить файл из строки eax списка для вставки (папки нельзя)
+; Copy files and FSM2 folders using the selected catalog row.
 fl_copy:
     pushad
     cmp al, [fl_cnt]
@@ -1116,14 +1116,25 @@ fl_copy:
     movzx esi, al
     shl esi, 4
     add esi, fl_names
+    mov dl, 1
     cmp byte [esi + 15], 1
-    je .r
+    jne .kind
+    cmp byte [fl_fs3view], 0
+    jne .r
+    inc dl
+.kind:
     mov edi, fclip_nm
     mov ecx, 16
     cld
     rep movsb
     mov al, [fl_disk]
     mov [fclip_dsk], al
+    movzx esi, al
+    imul esi, DT_ESZ
+    add esi, dtab
+    mov edi, fclip_volume
+    mov ecx, 10                    ; letter, ATA drive and extent
+    rep movsb
     mov byte [fclip_fs3], 0
     cmp byte [fl_fs3view], 1
     jne .fsm2
@@ -1135,33 +1146,43 @@ fl_copy:
     mov al, [fl_par]
     mov [fclip_par], al
 .ready:
-    mov byte [fclip_ok], 1
+    mov [fclip_ok], dl
 .r: popad
     ret
 
-; Paste a copied file into a different FSM3 directory on the same disk.
-; Do not use DATA_BUF or the FSM2 byte-sized parent identifiers.
+; Paste a copied file or a legacy folder into the current FSM3 directory.
 fl_fs3paste:
     pushad
-    cmp byte [fclip_ok], 1
-    jne .out
+    cmp byte [fclip_ok], 0
+    je .out
+    call wait_start
+    movzx esi, byte [fclip_dsk]
+    imul esi, DT_ESZ
+    add esi, dtab
+    mov edi, fclip_volume
+    mov ecx, 10
+    cld
+    repe cmpsb
+    jne .failed                   ; selection changed while the clipboard was retained
+    movzx eax, byte [fclip_par]
+    xor ecx, ecx
     cmp byte [fclip_fs3], 1
-    jne .out
-    mov al, [fl_disk]
-    cmp al, [fclip_dsk]
-    jne .out                         ; no cross-disk copy in this stage
-    call fs_setdisk
-    jnc .out                         ; refuse FSM2 volumes
-    cmp byte [lst_st], 3
-    jne .out
+    jne .source
     movzx eax, word [fclip_fs3parent]
+    mov cl, 3
+.source:
+    mov ch, [fclip_ok]
+    mov bl, [fclip_dsk]
+    mov bh, [fl_disk]
     movzx edx, word [fl_fs3parent]
     mov esi, fclip_nm
-    call fs3_copy_file
+    call fs3_paste_from
     jnc .refresh
-    mov byte [d2_err], 0x43         ; existing generic filesystem error
+.failed:
+    mov byte [d2_err], 0x36         ; operation failed
 .refresh:
     call files_list
+    call wait_end
     call redraw
 .out:
     popad
@@ -2169,6 +2190,7 @@ fl_fs3page  db 0                      ; 32 pages, 32 entries each
 fl_fs3parent dw 0                     ; current FSM3 parent ID: 0..1024
 fl_fs3stack times 5 dw 0             ; 16-bit parent navigation history
 fl_ids_hi   times 34 db 0             ; upper byte of FSM3 entry IDs
+fclip_volume times 10 db 0          ; source from dtab at the time of copying
 fclip_fs3 db 0                          ; clipboard contains FSM3 source
 fclip_fs3parent dw 0                   ; full 16-bit source parent ID
 d2_fmenu    db 0

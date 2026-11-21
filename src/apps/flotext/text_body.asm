@@ -26,6 +26,7 @@ text_blank:
     xor eax, eax
     rep stosb
     mov byte [t2_dsk], 0xFF
+    mov byte [txl_mode], 0
     mov dword [t2_fs3parent], 0
     mov byte [t2_nm], 0
     mov byte [t2_row], 0
@@ -39,6 +40,9 @@ text_blank:
 
 ; Snapshot only after a successful load/write. No per-key dirty tracking needed.
 text_snapshot:
+    mov byte [txl_dirty], 0
+    cmp byte [txl_mode], 0
+    jne .done
     pushad
     mov esi, t2_buf
     mov edi, TX_SAVED
@@ -46,10 +50,18 @@ text_snapshot:
     cld
     rep movsd
     popad
+.done:
     ret
 
 ; CF=1 iff current document differs from the last successfully saved/opened version.
 text_changed:
+    cmp byte [txl_mode], 0
+    je .legacy
+    cmp byte [txl_dirty], 1
+    je .dirty
+    clc
+    ret
+.legacy:
     pushad
     mov esi, t2_buf
     mov edi, TX_SAVED
@@ -111,6 +123,11 @@ text_draw:
     mov dword [t_y], 44
     mov esi, s_file
     call draw_big
+    cmp byte [txl_mode], 0
+    je .legacy
+    call txl_render
+    jmp .content
+.legacy:
     movzx ebx, byte [t2_top]
     imul ebx, 49
     lea edi, [ebx + 16 * 49]
@@ -123,6 +140,9 @@ text_draw:
     jne .menu
     call tx_caret_on
     jmp .e
+.content:
+    cmp byte [t_menu], 0
+    je .e
 .menu:
     RECT 8, 82, 336, 152, C_BLACK
     RECT 4, 78, 336, 152, C_BLACK
@@ -361,6 +381,11 @@ tx_cells:
 ; мышь сдвинули при зажатой кнопке: выделение тянется за ней
 tx_sel_move:
     pushad
+    cmp byte [txl_mode], 0
+    je .legacy
+    call txl_drag
+    jmp .r
+.legacy:
     call tx_mcell
     mov edi, eax
     call tx_cursor_idx
@@ -389,7 +414,13 @@ tx_click:
     mov byte [t_menu], 0
     call text_draw
     jmp .r
-.a: mov esi, [sel_lo]
+.a:
+    cmp byte [txl_mode], 0
+    je .legacy
+    call txl_click
+    jmp .r
+.legacy:
+    mov esi, [sel_lo]
     mov edi, [sel_hi]
     call tx_caret_off
     call tx_mcell
@@ -526,6 +557,11 @@ text_key:
     call text_exit
     jmp .r
 .noe:
+    cmp byte [txl_mode], 0
+    je .legacy
+    call txl_key
+    jmp .r
+.legacy:
     cmp al, 3
     je .copy
     cmp al, 0x18
@@ -792,6 +828,11 @@ tx_sel_copy:
 
 ; Сколько строк занято (не меньше 16 и не меньше строки с палочкой) -> eax
 tx_total:
+    cmp byte [txl_mode], 0
+    je .legacy
+    mov eax, [txl_rows]
+    ret
+.legacy:
     push ebx
     push ecx
     push edx
@@ -984,10 +1025,6 @@ text_open_named:
     pushad
     ; AL carries the selected disk. Do not overwrite it while reading
     ; the 16-bit FSM3 parent folder: nested folder IDs are not disk IDs.
-    push eax
-    mov eax, [fs3_folder_id]
-    mov [t2_fs3parent], eax
-    pop eax
     call splash_start
     mov [on_disk], al
     mov edi, fn_buf
@@ -997,24 +1034,37 @@ text_open_named:
     jnz .c
     mov al, [on_disk]
     call fs_setdisk
-    jnc .mounted
-    ; FSM3 is deliberately not mounted writable by fs_setdisk.
+    jnc .legacy
     cmp byte [lst_st], 3
-    jne .fail
-.mounted:
+    jne .error
+    cmp word [BOOT_EXT_KB], TXL_MEMORY_KB
+    jb .legacy
+    mov esi, fn_buf
+    call txl_load
+    jc .error
+    jmp .loaded
+.legacy:
     mov esi, fn_buf
     call file_read
-    jc .fail
-    call egg_test                       ; файл .sec с текстом secret floppy - пасхалка
+    jc .error
+    cmp byte [lst_st], 3
+    jne .unpack
+    cmp eax, TX_N
+    ja .error
+.unpack:
+    call egg_test
     jc .fail
     call text_unpack
+    mov byte [txl_mode], 0
     call text_snapshot
-    mov al, [on_disk]
+.loaded:
+    xor eax, eax
     cmp byte [lst_st], 3
-    jne .writable
-    ; FSM3 Save is handled by a separate bounded copy-on-write writer.
-    ; FloFile itself remains read-only for FSM3 operations.
-.writable:
+    jne .parent
+    mov eax, [fs3_folder_id]
+.parent:
+    mov [t2_fs3parent], eax
+    mov al, [on_disk]
     mov [t2_dsk], al
     mov al, [fs_par]
     mov [t2_par], al
@@ -1031,6 +1081,9 @@ text_open_named:
     call z_hide_others
     mov byte [d2_text], 1
     mov byte [t_menu], 0
+    jmp .fail
+.error:
+    mov byte [d2_err], 0x36
 .fail:
     call wait_end
     call redraw
@@ -1054,19 +1107,58 @@ text_save:
     jnc .selected
     ; A known FSM3 volume is reported via lst_st, not CF=0.
     cmp byte [lst_st], 3
-    jne .r
+    jne .error
 .selected:
     mov al, [t2_par]
     mov [fs_par], al
     mov eax, [t2_fs3parent]
     mov [fs3_folder_id], eax
-    call text_pack
     mov esi, fn_buf
-    call file_write
-    jc .r
+    mov dl, 1
+    call text_write_to
+    jc .error
     call text_snapshot
+    jmp .r
+.error:
+    mov byte [d2_err], 0x36
 .r: call wait_end
+    cmp byte [d2_err], 0
+    je .done
+    call redraw
+.done:
     popad
+    ret
+
+; ESI=name, DL=replace flag, filesystem already selected by the caller.
+text_write_to:
+    cmp byte [txl_mode], 0
+    jne .raw
+    call text_pack
+    mov edi, DATA_BUF
+    jmp .mounted
+.raw:
+    mov edi, TXL_DATA
+    mov ecx, [txl_size]
+.mounted:
+    cmp byte [lst_st], 3
+    je fs3_write_buffer
+    cmp ecx, 262144
+    ja .too_big
+    cmp byte [txl_mode], 0
+    je file_write
+    pushad
+    mov esi, edi
+    mov edi, DATA_BUF
+    rep movsb
+    mov ecx, [txl_size]
+    neg ecx
+    and ecx, 511
+    xor eax, eax
+    rep stosb
+    popad
+    jmp file_write
+.too_big:
+    stc
     ret
 s_ftx       db "FloText", 0
 
@@ -1076,6 +1168,3 @@ s_k_o   db "Ctrl + O", 0
 s_k_n   db "Ctrl + N", 0
 s_k_e   db "Ctrl + E", 0
 s_k_p   db "Ctrl + P", 0
-
-; Parent folder for a file opened from an FSM3 subdirectory (not t2_par).
-t2_fs3parent dd 0

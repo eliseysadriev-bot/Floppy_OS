@@ -95,3 +95,7 @@ KAPI fs3sw_begin_new
 
 ; Shared press animation state for native/dialog/FloFile buttons (append-only).
 KAPI ui_button_state
+
+; FloFile cross-volume copy and FSM2 import.
+KAPI fs3_paste_from
+KAPI fs3_write_buffer

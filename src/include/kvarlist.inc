@@ -50,7 +50,7 @@ KVB sb_drag, 0
 KVB sb_ctx, 0
 KVB d2_tm, 0
 KVD ticks, 0
-KVB fclip_ok, 0
+KVB fclip_ok, 0                        ; 0 empty, 1 file, 2 FSM2 folder
 KVB fclip_dsk, 0
 KVB fclip_par, 0
 KVS fclip_nm, 16

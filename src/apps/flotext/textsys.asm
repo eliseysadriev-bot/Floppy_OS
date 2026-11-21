@@ -12,6 +12,7 @@ C_WHITE equ 15
 %include "src/include/kvars.inc"
 %include "src/include/macros.inc"
 %include "src/include/textvars.inc"
+%include "src/include/filevars.inc"
 %assign KI 0
 %macro KAPI 1
 %1 equ KJ + 5 * KI
@@ -29,6 +30,7 @@ times 0x10 - ($ - $$) db 0
 times 0x100 - ($ - $$) db 0
     db 0, 0, 0, 0                       ; d2_text, t_menu, t2_top, (пусто)
     dd 0                                ; t2_sbo
+    dd 0, 0                             ; txl_top, t2_fs3parent
 times 0x200 - ($ - $$) db 0
 
 TX_ROWS equ 100                         ; всего строк (видно 16, остальное прокручивается)
@@ -48,6 +50,7 @@ s_m_saveto       db "Save to...", 0
 s_m_open         db "Open...", 0
 
 %include "src/apps/flotext/text_body.asm"
+%include "src/apps/flotext/text_stream.asm"
 
 MODSIZE equ 16
 times MODSIZE * 512 - ($ - $$) db 0

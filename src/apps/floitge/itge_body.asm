@@ -3572,8 +3572,8 @@ it_cut:
 
 ; Вставить: файл .pcf из FloFile или то, что скопировали здесь
 it_paste_any:
-    cmp byte [fclip_ok], 0
-    jne it_paste_pcf
+    cmp byte [fclip_ok], 1
+    je it_paste_pcf
     ; Global text takes precedence, including text copied from FloText/FloTerm.
     cmp dword [clip_len], 0
     jne it_paste_shared
@@ -4288,8 +4288,8 @@ itge_open_named:
 ; Вставить картинку .pcf, скопированную в FloFile (Copy или Ctrl+C)
 it_paste_pcf:
     pushad
-    cmp byte [fclip_ok], 0
-    je .r
+    cmp byte [fclip_ok], 1
+    jne .r
     mov esi, fclip_nm
     call strlen
     cmp ecx, 5

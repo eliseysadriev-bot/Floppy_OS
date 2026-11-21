@@ -81,16 +81,17 @@ fs3o_name_store:
     pop eax
     ret
 
-; Find named root entry. ESI=filename, EAX=slot index, EDI=entry, CF=0.
+; Find a name in the current folder. ESI=filename, CF=0: EAX=slot, EDI=entry.
+; CF=1 returns EAX=-1 for a missing name or EAX=-2 for a read error.
 fs3o_find:
     mov [fs3o_name], esi
     xor ecx, ecx
 .scan:
     cmp ecx, 1024
-    jae .bad
+    jae .missing
     mov eax, ecx
     call fs3_dir_read
-    jc .bad
+    jc .io_error
     cmp byte [edi+24], 0
     je .next
     mov ax, [fs3_folder_id]
@@ -115,7 +116,12 @@ fs3o_find:
     mov eax, ecx
     clc
     ret
-.bad:
+.missing:
+    mov eax, -1
+    stc
+    ret
+.io_error:
+    mov eax, -2
     stc
     ret
 
@@ -156,9 +162,7 @@ fs3o_commit:
     mov ebx, DIR_BUF
     call lba_write
     jc .bad
-    call ata_flush
-    clc
-    ret
+    jmp ata_flush
 .bad: stc
     ret
 
@@ -175,6 +179,8 @@ fs3o_create:
     mov esi, [fs3o_name]
     call fs3o_find
     jnc .bad                       ; duplicate
+    cmp eax, -1
+    jne .bad                       ; a read error does not prove absence
     call fs3o_free
     jc .bad
     mov [fs3o_slot], eax
@@ -227,6 +233,8 @@ fs3_rename_root:
     mov esi, [fs3o_new]
     call fs3o_find
     jnc .bad
+    cmp eax, -1
+    jne .bad
     mov esi, [fs3o_old]
     call fs3o_find
     jc .bad
