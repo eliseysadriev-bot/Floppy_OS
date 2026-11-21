@@ -1,0 +1,14 @@
+Floppy OS 2.0 — task panel redesign (UNTESTED)
+
+Changed src/desktop/minimize.asm only.
+- Immediate open/close, no slide animation.
+- Fixed pull tab position: x=614, y=510, 12x44, always fixed even during height resize.
+- A 14px horizontal gap separates the tab from the task panel.
+- Narrower panel: x=200..600, width 400; height 116..150, bottom at 552.
+- Six individual outlined buttons in a 3x2 grid, with no ornamental row dividers.
+- All native large labels: FloText, FloItge, FloPaint, FloFile, FloCalc, FloClock.
+- Active program: gray button background; pressed program: black with white lettering.
+- Minimized by minus: a short centered blue mark under the program name.
+- Button hit regions follow the same 3x2 geometry and exclude gaps.
+- Top edge remains draggable for vertical resizing, with existing cursor behavior.
+- No build, emulator run, or runtime test performed at user's request.

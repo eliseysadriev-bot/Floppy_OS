@@ -1,0 +1,88 @@
+Floppy OS 2.0 — FSM3 streaming integration, stage 2
+20 November 2026 — SOURCE-ONLY PATCH / UNTESTED
+
+BASE
+Floppy_OS_2_0_ZORDER_STAGE1_UNTESTED.zip (it already includes the earlier
+FSM3 stream/name-guard patch). No taskbar is restored and no other GUI redesign
+or filesystem format change is made. Old source ZIP and disk images untouched.
+
+CHANGES
+1. src/filesystems/fs3_stream.asm
+   - New fs3sw_begin_new(ESI=name, ECX=final size, fs3_folder_id=parent),
+     a streaming create path for 1..4,194,304 bytes on virtual FSM3 disks.
+     It reserves a free directory slot but does NOT expose the new file until
+     all sectors and FAT links have been staged and commit succeeds.
+   - Existing fs3sw_begin remains a replace-only API, but now snapshots the
+     filename and parent and refuses a different directory during a stream.
+     Commit checks that the old record still has the same name.
+   - New fs3_copy_file(ESI=name, EAX=source parent ID, EDX=dest parent ID),
+     copying 0..4,194,304 bytes between directories on the SAME currently
+     mounted virtual FSM3 disk. It never overwrites existing names.
+     Copies one 512-byte sector at a time via FS3_COPY_BUF=0x50800,
+     separate from DATA_BUF, FAT_BUF, DIR_BUF and the integrity bitmap.
+     Padding past logical EOF is zeroed. Destination is reread completely
+     and compared with the source via an incremental CRC32 fingerprint.
+     CRC32 here detects accidental errors, not deliberate modification.
+   - A zero-length source creates an empty destination without a stream.
+   - Predictable lack of free clusters is rejected before any dest creation.
+   - If uncertain I/O or a failed directory commit occurs, the operation
+     reports failure; it does not try to auto-repair metadata or data.
+     Orphaned private clusters may still leak after a real I/O failure.
+2. src/apps/flofile/files_body.asm
+   - Ctrl+C copies an FSM3 file's name, disk and full 16-bit parent ID.
+   - Ctrl+V, when browsing another directory of that SAME FSM3 virtual
+     disk, invokes fs3_copy_file; regular legacy FSM2 and cross-disk paste
+     are not silently routed through FSM3 code.
+   - The existing right-click Copy menu can also set the FSM3 clipboard.
+   - A copy to the same directory under the same name is rejected; there
+     is no automatic renaming or replacement, to avoid losing files.
+3. src/include/kapilist.inc
+   - APPEND-only kernel entries: fs3_copy_file and fs3sw_begin_new.
+     Existing API indices are unchanged.
+
+IMPORTANT LIMITS (FSM3 IS NOT FINISHED)
+- This adds a working SOURCE PATH, NOT a validated release. No NASM/QEMU/Bochs
+  build or runtime tests have been run; even module-size limits are unknown.
+- 4 MiB files cannot yet be created from FloText's editor buffer. FloText's
+  text grid and old file_read/file_write still have their old bounded caps.
+  The full-size path is for files ALREADY present on FSM3 (for instance,
+  from a separately prepared test volume), and for future stream clients.
+- Ctrl+V supports in-volume FSM3 copies only, not FSM2/FSM3 conversion or
+  copies between two distinct virtual disks. It does NOT perform migration.
+- The standard Disks GUI currently creates FSM3 virtual volumes up to 8 MiB.
+  Two separate 4 MiB files plus directory/FAT metadata cannot both fit on
+  the same 8 MiB volume. The 4 MiB per-file streaming limit is NOT a promise
+  that a full 4 MiB source can be duplicated on the current maximum disk.
+  Real copying is limited by the remaining free sectors; adding larger
+  virtual volume creation is still future work.
+- There is no built-in safe FSM2->FSM3 folder/file migration yet. Older
+  FSM2 volumes are not modified by this patch.
+- Existing damaged-volume screen and fail-closed catalog validation are
+  retained but still need actual corruption and power-loss tests.
+- No defragmentation, automatic leaked-block repair or complete fsck.
+
+SUGGESTED VERIFICATION AFTER OWNER AUTHORIZES BUILD/EMULATOR
+A. Preserve EVERY original .img. Build to a NEW disposable directory, not
+   the user's working disk; do not format C/O/I physical volumes.
+B. Check NASM output size for filesys.bin and kernel32.bin (fixed boot layout).
+C. Confirm boot, display, normal FSM2 open/save, window stacking (Z order),
+   and no taskbar regression.
+D. On a disposable 8MiB FSM3 virtual disk create folder ONE, folder TWO.
+   Create a nonempty .txt in ONE, select Ctrl+C, navigate to TWO, Ctrl+V.
+   Compare content, metadata, and reread after cold boot.
+E. Also try empty files; lengths 1/511/512/513/262143/262144/262145 bytes,
+   and larger files that fit twice in the same virtual volume. A 4,194,304
+   byte source can be read by the stream backend, but a full duplicate on
+   the standard 8MiB volume cannot fit; test full-size copying only after
+   larger validated virtual volumes are actually supported. Also exercise
+   nested directories; duplicate names; no free space; Ctrl+V across virtual
+   disks (must be rejected without writing).
+F. Inject read, FAT and directory-write failures on COPIES of disk images,
+   verify old files survive and no invalid records become writable.
+G. Test damage screen with deliberate invalid mirror/catalog on disposable
+   images only; Enter should return to desktop and writing stay blocked.
+H. FSM2->FSM3 migration, including hierarchy and byte-for-byte verification
+   while retaining originals, remains a separate unfinished milestone.
+
+STATUS
+Static changes and source-tree consistency only. UNTESTED.

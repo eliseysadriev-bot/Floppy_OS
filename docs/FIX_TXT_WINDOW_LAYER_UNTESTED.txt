@@ -1,0 +1,38 @@
+Floppy OS 2.0 — FloFile TXT click + window/fullscreen layering (UNTESTED)
+
+BASE: FSM3_STAGE2_STREAM_COPY_UNTESTED.zip
+
+CHANGES (ONLY REQUESTED):
+1. Fix FloFile context-menu Notepad (.txt) creation:
+   - Mouse hit ID 191 is shared by Notepad and minimized Error restoration.
+   - Restore Error only when err_min_code is nonzero AND the mouse is
+     inside the minimized Error badge (486..618 x 508..544).
+   - This lets FloFile handle Notepad's ID 191 and open its filename dialog.
+2. Existing ordinary-window Z-order remains intact:
+   - Opening a new window via fz_top brings it forward, older windows behind.
+3. Fullscreen app temporarily covers previously opened normal windows:
+   - Save previous floating-window visibility layer on fullscreen launch.
+   - Hide covered windows from drawing, mouse hit tests and keyboard focus,
+     without closing them or clearing d2_* open state.
+   - Any floating window opened from the fullscreen app can appear on top.
+   - On closing/minimizing fullscreen app, restore the previous layer.
+   - Nested fullscreen apps keep their own prior visibility layers.
+   - Clock's direct tick paint also observes the cover mask.
+
+UNMODIFIED: FSM2/FSM3 data formats, allocation, file I/O, assets, build scripts,
+any existing user disks/images. No new user-facing applications or menus.
+
+NOT COMPILED OR EMULATED (UNTESTED). Verify on a copy:
+- In FloFile empty-area menu: Notepad opens name dialog and creates TXT;
+  Paint/Folder still work. Minimized Error restores only when present.
+- Main + About/Settings/Calc/Clock: newer window draws above Main;
+  clicking another visible window raises it, without closing it.
+- With Main open, start FloFile/FloText/FloPaint: Main and older floating
+  windows disappear. Closing the fullscreen app restores those windows.
+- FloFile -> Disks: Disks must display above FloFile, without showing Main.
+  Close Disks, return to FloFile, then close FloFile and see Main again.
+- FloFile -> FloText: returning to FloFile should restore the previous layer.
+- Clock is not redrawn on top of a fullscreen app while ticking.
+- Check modal dialogs and keyboard focus (including Ctrl+E).
+
+No guarantee of runtime correctness without NASM build and QEMU test.

@@ -1,0 +1,19 @@
+Floppy OS 2.0 — titlebar controls for modal dialogs (UNTESTED)
+
+Requested behavior:
+- Standard - and X buttons in titlebars, based on existing Error/wbtn pattern.
+- 'Shut Down' confirmation action caption -> 'Ok'; desktop Shut Down launcher and window title unchanged.
+
+Supported dialogs:
+- Save changes?: minimize/restore; X cancels the question without saving or closing the document.
+- Shut down computer?: minimize/restore; X cancels power-off. Ok is the only mouse confirmation action.
+- Error: existing minimize and close retained; button height updated to display 32px font.
+- Replace?: minimize/restore the nested question; X cancels replacement.
+- Format?: minimize/restore the nested confirmation within Disks; X cancels formatting.
+- FloFile name/create/rename dialog: minimize/restore; X cancels creation/rename.
+- FloFile properties: minimize/restore; X closes properties without changes.
+
+Minimized modal dialogs use a small standard wbtn restore indicator to the right of the main workspace, similar to the existing Error minimized indicator. These remain modal (other input can stay blocked until restored or canceled). This is not new application taskbar integration.
+
+No animations or new cursor artwork were added. The classic layered VGA repainting remains unchanged.
+No NASM compilation, build scripts, QEMU or Bochs were run. Static source inspection only.

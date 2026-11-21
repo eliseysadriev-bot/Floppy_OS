@@ -1,0 +1,26 @@
+Floppy OS 2.0 — TEST: double-buffered full desktop redraw (UNTESTED)
+
+What changes: src/kernel/kernel32.asm, zametki.txt, and this document only.
+
+At full redraw of normal desktop and its windows, rectangles are composed in
+240000 bytes RAM (0x1C2000..0x1FC97F), 4 VGA bitplanes x 60000 bytes each.
+Upon completion, the frame is copied to VGA A0000 in 25-row strips, four
+planes per strip via the sequencer map mask, reducing transitional colors.
+
+This is NOT a hardware page flip: video memory copy is visible, potentially
+with tearing. Incremental drawing and mouse cursor remain directly in VGA.
+FloItge drawing uses its own direct VGA blitter and is excluded from buffering;
+installer/welcome/easter-egg paths are also left unchanged.
+
+Reversion: change `DBUF_TEST equ 1` -> `DBUF_TEST equ 0` in kernel32.asm, or
+use the preceding release ZIP. Keep both builds for comparison.
+
+Suggested *user-run* checklist after NASM/QEMU build:
+1. Basic boot and desktop are displayed correctly.
+2. Open/close/drag standard windows; inspect fonts, borders, XOR selections.
+3. Move cursor and resize panel; confirm no residual trails.
+4. Open FloText, FloPaint, FloFile, FloCalc; test moving/minimizing.
+5. Open FloItge (fallback to original VGA drawing); close and re-open windows.
+6. Compare responsiveness, tearing, and flicker against previous build.
+
+The assistant DID NOT compile or launch emulators.

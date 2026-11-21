@@ -1,0 +1,1 @@
+Floppy OS 2.0: six user-supplied 32x32 PNGs (latest (4) variants), rendered via horizontal pixel runs in minimize.asm. Native palette only: black/white/gray/blue. Six 40x40 buttons, same anchored right edge and tab. No NASM/emulator tests. See zametki.txt.

@@ -1,0 +1,52 @@
+Floppy OS 2.0 — FSM3 Part 1: full Size text editor and EN/RU redraw fix
+21 November 2026 — SOURCE PATCH / UNTESTED
+
+BASE
+Floppy_OS_2_0_FSM3_PART1_CUSTOM_DISK_SIZE_UNTESTED.zip
+
+FIX 1 — Disks / Size input
+- Implemented full text editing behavior required by "ПРАВИЛА НА ВСЕГДА" in zametki.txt:
+  * I-beam mouse pointer over the Size input (already routed by the previous patch).
+  * Clicking places the caret at the nearest digit boundary.
+  * Dragging with the left mouse button selects a digit range.
+  * The selection is visibly highlighted, and the caret tracks the click.
+  * Backspace removes the previous digit or the selected range.
+  * Delete removes the next digit or the selected range.
+  * Ctrl+A selects the complete Size input.
+  * Ctrl+C copies the selected digits to the shared clipboard.
+  * Ctrl+X cuts the selected digits.
+  * Ctrl+V inserts digits from the shared clipboard at the caret, replacing selection.
+  * Left/Right/Home/End navigate within the Size field.
+- Only ASCII digits 0..9 can be entered; invalid characters from paste are ignored.
+- Maximum five digits, minimum/maximum sector constraints unchanged (180 KiB..32 MiB).
+- Existing Name field now also recognizes the Delete key without changing its other behavior.
+- No additional size presets, applications or file-system features were introduced.
+
+FIX 2 — Desktop EN/RU toggle
+- src/desktop/minimize.asm:mn_arrow now temporarily uses zero cw_x/cw_y
+  while drawing its absolute-position language toggle, then restores the prior
+  window origin. This avoids the Main window offset corrupting the toggle.
+- Existing screen coordinates, shadow and labels are unchanged.
+
+CHANGED FILES
+src/filesystems/disks.asm
+src/desktop/minimize.asm
+docs/FSM3_PART1_TEXT_INPUT_ENRU_LAYOUT_UNTESTED.txt
+
+STATIC CHECKS
+- Checked unique/local labels and local jump/call targets in modified Disks source.
+- Checked archive file list and only intended differences from the base archive.
+- NASM/build scripts were not run. QEMU/Bochs were not run.
+- No .img file or existing user virtual disk was modified.
+
+SUGGESTED TESTS (on a backup disk image when user authorizes)
+1. In Disks Size, click at beginning/middle/end of "360", verify caret placement.
+2. Drag to select one/two/all digits; check highlight, Ctrl+A, Delete/Backspace.
+3. Copy/Cut/Paste inside Size and across Name, FloText, FloTerm.
+4. Paste nondigits/spaces and >5-digit numbers; ensure Size stays numeric with <=5 digits.
+5. Check unit toggle KB/MB and validation (0, 179KB, 180KB, 32MB, 33MB).
+6. Close/reopen Disks and verify default Size 360 KB.
+7. Open/move Main, FloFile, Disks, and test EN/RU toggle stays visible and clickable.
+8. Check other windows still render buttons with correct coordinates.
+
+STATUS: UNTESTED source-level patch, not a confirmed functioning release.

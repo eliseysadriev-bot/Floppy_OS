@@ -1,0 +1,29 @@
+Floppy OS 2.0 — six 16x16 toolbar icons (UNTESTED source patch)
+
+Base: Floppy_OS_2_0_Clean_Boot_Splash_UNTESTED.zip.
+Files updated:
+  src/desktop/minimize.asm — 1x6 row, original icon rasters as horizontal runs,
+      hover name tooltip, minimized blue full-button frame, active inset frame,
+      original launch/restore logic and independent fixed tab kept.
+  src/desktop/settings.asm — 40px minimum persisted panel height (was 116px),
+      maximum remains 150px; old persisted values remain valid.
+  zametki.txt — append-only development notes and design agreement.
+
+New assets/taskbar_icons/ files are EXACTLY 16x16 PNG:
+  FloText.png   - user's modified image
+  FloItge.png   - user's modified image
+  FloPaint.png  - approved A brush with white handle
+  FloFile.png   - user's modified image
+  FloCalc.png   - user's modified image
+  FloClock.png  - user's modified image
+
+Design: 224px wide panel at x376..600, panel bottom y552;
+button 30x28, six horizontally with 4px gaps; icon 16x16 centered;
+initial height 44px; original fixed tab x614 at right stays unchanged.
+
+Colors in PNGs normalized to the Floppy system's native four-color palette.
+Original PNG assets remain separate for future manual editing.
+No decoration, extra sections or visual redesign added.
+
+Important: NASM build, emulator boot, and runtime behavior NOT TESTED,
+per author request. Keep prior working archive as fallback.

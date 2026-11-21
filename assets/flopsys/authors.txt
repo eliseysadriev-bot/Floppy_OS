@@ -1,0 +1,13 @@
+Floppy OS - Authors
+===================
+
+Sadriev Elisey - Creator of Floppy OS.
+Original idea, system design, development
+and direction of the project.
+
+lzitch - Co-author and icon artist.
+Created taskbar icons for Floppy OS.
+I am grateful to lzitch for this work!
+The icons will appear in future versions.
+lzitch remains one of the authors of
+Floppy OS even before their release.

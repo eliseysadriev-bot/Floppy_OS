@@ -1,0 +1,48 @@
+Floppy OS 2.0 — FSM3 / Part 1 UI patch: typed virtual-disk size
+21 November 2026 — SOURCE PATCH / UNTESTED
+
+BASE
+Floppy_OS_2_0_FSM3_PART1_LARGE_VIRTUAL_DISKS_32M_UNTESTED.zip
+Includes the earlier GUI button/dialog changes and FSM3 stage 1 large disks.
+
+WHAT CHANGED
+- Disks -> Create replaces five disk-size preset buttons with a numeric
+  "Size:" field and a single KB/MB toggle.
+- Mouse click in the Size field focuses it. Digits and Backspace edit the
+  amount. Click the KB/MB button to switch units; the chosen amount stays.
+- The separate disk-name field and existing create/delete/format/close
+  controls remain available. Name editing is unchanged.
+- The unit control uses the existing pressed-button animation and activates
+  only after a completed click; the numeric field shows its own caret.
+- Convert validated size into 512-byte sector counts before add_core.
+  KB and MB in the GUI mean binary 1024-byte KB and 1024*1024-byte MB.
+- Reject zero, empty, too-small and oversized sizes BEFORE attempting
+  disk creation. Current allowed range: 180 KB .. 32 MB (32 MiB).
+  MB mode accepts whole MB values 1..32; KB mode accepts whole KB values
+  180..32768. Maximum remains FS3_MAX_SECTORS = 65536.
+- A failed validation shows "Size: 180KB - 32MB".
+- Disk-list labels don't round custom sizes down: e.g., 2500 KB will
+  be shown as 2500 KB instead of 2 MB. Exact multiples of 1024 KB are
+  still displayed in whole MB.
+- Old default size of 360 KB is preserved.
+
+NO CHANGES
+- FSM3 disk layout, FAT, 4 MiB per-file cap, existing image files,
+  disk formatting confirmation, and other applications are unchanged.
+- No hardcoded 64/128 MB virtual-disk support has been added; increasing
+  FSM3's 32 MiB maximum needs a separate, authorized change.
+
+SUGGESTED CHECKS WHEN AUTHORIZED
+1. Back up the disk images before testing.
+2. Open Disks: verify name and size fields, KB/MB button and all actions.
+3. Create 180 KB, 360 KB, 2500 KB, 8 MB and 32 MB disks where space allows.
+4. Verify 2500 KB is labeled 2500 KB; 8192 KB is labeled 8 MB.
+5. Reject empty size, 0, 179 KB, 33 MB and any size over 32768 KB.
+6. Test Backspace, clicking between name and size, KB/MB switching,
+   resize Disks to minimum width and test repeated open/close.
+7. Format a freshly created virtual disk with FSM3, remount and check files.
+8. Check existing virtual disks and the Format dialog continue to work.
+
+STATUS
+Static source update only. NASM, QEMU, and Bochs were NOT run.
+No actual disk or .img file was modified.
