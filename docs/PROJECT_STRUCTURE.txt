@@ -1,0 +1,25 @@
+Floppy OS 2.0 - source code structure (organization only)
+========================================================
+
+Run build.bat from the project root on Windows.
+Run ./build.sh from the project root on Linux.
+Run run.bat to start the already-built pm.img on Windows.
+
+src/boot/          Boot sector and boot-menu code
+src/kernel/        Kernel entry, system and common/error handling
+src/filesystems/   FSM2, FSM3, disk operations and alerts
+src/desktop/       GUI, desktop, system windows, input, terminal
+src/apps/          Source for separately built .sys modules (and helpers)
+src/include/       Shared NASM include files and interface definitions
+docs/              Previous change notes
+
+NASM %include paths were rewritten to match their new source locations.
+All compilation outputs (boot.bin, kernel32.bin, *.bin, pm.img) remain at
+repository root so existing QEMU/Bochs scripts and concatenation order work.
+
+IMPORTANT: This is an untested source-layout change. The reorganized source
+has not been compiled with NASM or boot-tested in QEMU in this environment.
+Do not overwrite your last working ZIP or existing disk_o.img/disk_i.img.
+
+No .py file has been reintroduced. FLOPSYS refers to the runtime filesystem;
+these source folders only organize the code on the developer's computer.

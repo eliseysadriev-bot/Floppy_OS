@@ -1,0 +1,14 @@
+Floppy OS 2.0 — classic direct-VGA redraw restored (UNTESTED)
+
+The software double-buffer and dirty-stripes experiments were removed from
+src/kernel/kernel32.asm. Window and desktop updates use the original direct-
+VGA layered redraw path from before the experiments.
+
+FloCalendar's three resize integration hooks were retained in kernel32.asm.
+All other project files (apps, user artwork, mouse cursors, taskbar, startup
+splash, build/run scripts, Bochs configuration) are from the latest archive.
+
+The original experimental documentation is preserved for project history,
+but its DBUF_TEST instructions are no longer applicable to this version.
+
+No build, assembly or emulator was run; UNTESTED.

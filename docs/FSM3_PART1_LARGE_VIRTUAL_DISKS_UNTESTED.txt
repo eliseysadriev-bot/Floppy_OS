@@ -1,0 +1,45 @@
+Floppy OS 2.0 — FSM3 / Part 1 of 4: Large virtual disks
+21 November 2026 — SOURCE PATCH / UNTESTED
+
+SOURCE
+Based on Floppy_OS_2_0_GUI_BUTTONS_DIALOG_ZORDER_UNTESTED.zip.
+All existing patches and the removed taskbar are retained.
+
+WHAT CHANGED
+- Maximum supported FSM3 virtual volume: 32 MiB (65,536 sectors of 512 B).
+- Disks > Create adds a fifth 32 MB option; all original four sizes remain.
+- Catalog cross-link detection bitmap expands from 2,048 B to 8,192 B.
+  The map covers all 65,536 possible data-cluster indices. It occupies
+  scratch low RAM at 0x51000..0x52FFF, without changing disk layout.
+- FSM3 format and mount now explicitly refuse volumes larger than 32 MiB,
+  preventing an out-of-bounds bitmap validation. Existing 8 MiB volumes
+  remain supported. FSM3 on-disk layout and version are unchanged.
+- Virtual disk discovery from the FSM2 host now bounds-checks its
+  contiguous extent, so an invalid descriptor is not advertised.
+
+LIMITATIONS / CAVEATS
+- Size selection in Disks does NOT magically enlarge a host image. A 32 MiB
+  virtual volume needs at least 32 MiB free in an FSM2-formatted host disk.
+  Windows build.bat/run.bat already create O and I as 64 MiB when missing.
+  Existing disk images are NEVER resized or replaced by this patch.
+- Full formatting writes all sectors; formatting 32 MiB will be slower.
+- Maximum individual file remains 4 MiB, with streaming API not yet wired
+  into all GUI clients. This is Part 2, not Part 1.
+- Directory remains 1,024 entries; no on-disk migration is performed.
+- FSM2 to FSM3 migration, full recovery tests, FAT12 compatibility, and
+  UI feature additions are outside this patch.
+
+SUGGESTED VERIFICATION (owner's authorization required to compile/run)
+1. Copy the project and disk images to a disposable test folder.
+2. Build and boot; verify previous 180/360/720 KB and 8 MiB sizes.
+3. Select 32 MB in Disks; create a virtual disk on fresh 64 MiB O or I.
+4. Format it as FSM3 and confirm the mount works after restarting QEMU.
+5. Create/read/rename/delete files and nested folders; reboot and verify.
+6. Check cluster uniqueness at a high FAT index (> 16384). Verify that
+   corrupt/overlapping FAT links are rejected with no writes.
+7. Repeat with an existing 8 MiB virtual disk; ensure old data is intact.
+8. Verify low-space and corrupted-host-extent handling.
+
+STATUS
+Static source changes only; NASM, QEMU and Bochs were NOT run.
+The image and existing physical/virtual disks were NOT changed.

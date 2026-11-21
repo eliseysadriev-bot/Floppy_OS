@@ -38,7 +38,7 @@ It's entirely up to you. I just don't want this project to remain in the shadows
 - Support for files, folders, and nested directories
 - Multi-block file storage in FSM3
 - Three main disks: C, O, and I
-- Virtual disks of 180 KB, 360 KB, 720 KB, and 8 MB
+- Virtual disks with a configurable size from 180 KiB to 32 MiB
 - FLOPSYS system folder on disk C containing system programs
 - Separate `.sys` program modules loaded by the bootloader
 - Disk management with formatting and space usage indicators
@@ -52,13 +52,13 @@ It's entirely up to you. I just don't want this project to remain in the shadows
 QEMU is required to run the prebuilt operating system. NASM is required to build it from source.
 
 - **Windows:** run `run.bat` to launch the prebuilt system or `build.bat` to compile it
-- **Linux:** run `run.sh` to launch the prebuilt system
+- **Linux:** run `bash build.sh` to build and launch Floppy OS, or `bash run.sh` if you already have `pm.img`
 - **Prebuilt version:** requires the `pm.img` disk image
-- **Source code:** available separately for building and development
+- **Source code:** included in `src/` with its build scripts
 
 ## Status
 
-Floppy OS 1.1 is an experimental operating system with a working graphical interface, built-in applications, and custom file systems.
+Floppy OS 2.0 is an experimental operating system with a working graphical interface, built-in applications, and custom file systems.
 
 Core functionality has been tested in QEMU. Some advanced features, including very large file handling and damaged disk recovery, still have limitations.
 

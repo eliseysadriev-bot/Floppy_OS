@@ -1,0 +1,25 @@
+Floppy OS 2.0 — FloTerm current-directory patch
+
+Changes in src/desktop/terminal.asm:
+- FloTerm prompt now shows the actual drive and folder in both Floppy and DOS modes:
+  C:\>   C:\flopsys>   C:\flopsys\programs>
+- `cd FLOPSYS` now retries with lowercase when exact-case lookup fails.
+  System directories are stored as `flopsys`, `programs`.
+- The prompt stores the name as it appears in the directory record.
+- Existing `cd ..`, `cd \`, `dir`, file commands and drive switching remain in place.
+
+Known limitation: the existing legacy dir_find / fs_list APIs are FSM2-centric;
+this patch does NOT add nested FSM3 directory traversal to FloTerm.
+
+Suggested test in a newly initialized main C disk:
+  dir
+  cd FLOPSYS
+  dir
+  cd PROGRAMS
+  dir
+  cd ..
+  cd \
+Try the same in the DOS command mode. Verify folder operations in each location.
+
+UNTESTED: NASM / QEMU not available during creation. Do not overwrite a
+known working disk image before confirming boot and directory behavior.

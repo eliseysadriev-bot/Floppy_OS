@@ -1,0 +1,6 @@
+Floppy OS 2.0: startup/shutdown visual changes (SOURCE / UNTESTED)
+
+Startup: installation check first; a first-boot installer does NOT display the four-second splash. The splash displays only when installer is not needed. Once installed and rebooted, the startup splash is shown.
+Shutdown: dedicated solid blue background, actual 32x32 About icon (2x size) top right, centered Shutting down...; no panel, no loading bar; native clock cursor follows mouse; 28 timer ticks (~1.54 seconds).
+Hardware shutdown: original QEMU/Bochs ACPI port attempts unchanged; generic real-PC ACPI remains unimplemented.
+Build/run was not verified in QEMU; do not replace your known-working build without a backup.

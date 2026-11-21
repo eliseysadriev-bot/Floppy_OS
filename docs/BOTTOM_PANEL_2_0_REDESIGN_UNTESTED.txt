@@ -1,0 +1,19 @@
+Floppy OS 2.0 — redesigned task panel (source only, UNTESTED)
+
+Source base: Floppy_OS_2_0_Bottom_Panel_With_Launchers_UNTESTED.zip
+
+- Fixed 560-pixel-wide panel (70% of the 800-pixel desktop), docked above the bottom edge and to the left of the EN/RU control.
+- Three rows, two cells per row: FloText, FloItge / FloPaint, FloFile / FloCalc, FloClock.
+- Native 16px font, 2px black frame, native black shadow, vertical cell dividers, no Programs label, no scrolling arrows.
+- Only narrow right-side handle is visible when closed. It turns black while pressed and white when released.
+- Panel slides left in 7 simple 80-pixel steps, one step per main loop tick (not a timed easing animation).
+- The top boundary may be dragged vertically; native-style two-way vertical resize cursor appears over it.
+- The panel height is clamped to 116..150 pixels and its 3x2 grid is vertically centered.
+- Height is written to the existing SETG settings sector at offset 12 and loaded on later boots.
+- Selected item is black with white text while pressed. Active item receives gray fill. A short centered blue mark indicates a program minimized via the minus control.
+- Item clicks reuse the old launch/restore/front behavior; the panel remains visible until the handle is pressed again.
+- FloClock is displayed by its full name, never shortened to Clock.
+- Existing launcher scripts retained, including run_bochs.sh, run.sh, run.bat, mkdos.bat and package_run.bat.
+
+IMPORTANT: No NASM build, QEMU run, Bochs run or runtime tests were performed at the user's request.
+The previous Floppy OS source archive should be kept as a backup. This is an unverified integration of multiple UI changes.

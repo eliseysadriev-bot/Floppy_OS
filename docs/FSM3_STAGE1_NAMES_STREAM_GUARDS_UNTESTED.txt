@@ -1,0 +1,48 @@
+Floppy OS 2.0 — FSM3, stage 1: catalog names + streaming guards
+19 November 2026 — SOURCE PATCH / UNTESTED
+
+BASE
+Floppy_OS_2_0_NO_TASKBAR_UNTESTED.zip. The taskbar stays removed.
+The actual file format, 1024-slot directory layout, FAT structure, KAPI,
+DATA_BUF limit, boot order and visual design are unchanged.
+
+WHAT CHANGED
+1) src/filesystems/fs3_ops.asm
+   - New fs3o_name_store helper writes an FSM3 name through its first NUL
+     and zero-fills the remainder of the 16-byte name field.
+   - Both file/folder creation and rename now use it; they no longer copy
+     15 source bytes even when the name is shorter. This prevents stale
+     memory bytes from being written after the filename terminator.
+2) src/filesystems/fs3_stream.asm
+   - A second fs3sw_begin now refuses to replace an already active write
+     without explicit commit/cancel, so staged FAT clusters are not lost.
+   - An extra fs3sw_put after all blocks have been submitted returns an
+     error WITHOUT aborting the pending stream, allowing commit or cancel.
+   - A premature fs3sw_commit returns an error WITHOUT aborting the
+     pending stream, allowing the missing sectors to be put or cancelled.
+   - Real I/O failures keep the existing conservative fail-closed handling.
+
+WHAT THIS DOES NOT DO
+- Does NOT wire 4 MiB streaming into FloFile or FloText: normal DATA_BUF
+  file operations still have the original approximately 256 KiB cap.
+- Does NOT implement FSM2 -> FSM3 migration, on-disk repair, or full fsck.
+- Does NOT guarantee FAT reclaim in the face of an uncertain I/O failure.
+
+SAFE TEST PLAN (AFTER OWNER AUTHORIZES BUILD/QEMU)
+- Preserve all original disk images. Use ONLY a disposable new FSM3 virtual
+  disk. Never format your original C/O/I volumes.
+- First confirm the OS boots and legacy FSM2 files are intact.
+- In FloFile, create short-name TXT and a folder (for example A.TXT and B),
+  rename them, reboot, and make sure the names and files persist.
+- Confirm longest supported 14-char name and NUL/zero padding via a test
+  image inspection; avoid interpreting an absent NUL as a valid filename.
+- Existing file save/open/delete and nested folder navigation on FSM3.
+- Source-only future stream tests: begin/write incomplete/early commit,
+  then finish/commit; extra put, then cancel; second begin must refuse.
+- Check 4 MiB read/write only via a proper streaming client, NOT FloText.
+- After this: integrate stream APIs into a bounded file-copy path and
+  test readback/persistence. Keep FSM2 data and old images unchanged.
+
+VERIFICATION
+- Static inspections and archive consistency only.
+- NASM, QEMU and Bochs were not run; functionality remains UNTESTED.

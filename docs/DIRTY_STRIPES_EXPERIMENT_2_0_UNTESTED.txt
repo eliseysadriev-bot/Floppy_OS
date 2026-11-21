@@ -1,0 +1,17 @@
+Floppy OS 2.0 — Dirty VGA Stripes & Cursor Guard (EXPERIMENT / UNTESTED)
+
+- Double buffering remains software-based (240 KB RAM / 800x600 / VGA 4 planes).
+- Every full redraw still paints the entire framebuffer in RAM.
+- dbuf_present hashes each 25-row stripe in RAM before VBlank, copies to VGA only changed bands; no VGA operations if nothing changed.
+- First present after direct VGA rendering refreshes every band.
+- An overlapping direct fill_rect0 hides/restores the visible cursor.
+- FloItge keeps the direct VGA path. FloPaint uses full presenter transfers.
+- No animations, new artwork, or GUI layout changes.
+
+For rollback in src/kernel/kernel32.asm:
+  DBUF_DIRTY_STRIPES equ 0    ; revert optimization but keep double buffer
+  DBUF_TEST equ 0             ; revert full buffering experiment
+
+Caution: an experimental heuristic, not a full Windows-style compositor.
+Hashes theoretically can collide. Some non-fill_rect VGA paths remain.
+No NASM, build scripts, or emulator was executed. Back up previous ZIP.

@@ -1,0 +1,39 @@
+Floppy OS 2.0 - first common Z-order for normal windows (UNTESTED)
+
+BASE: FSM3_STAGE1_NAMES_STREAM_UNTESTED, with taskbar still removed.
+
+WHAT CHANGED:
+- One bottom-to-top window order, covering Main, FloCalc, FloCalendar,
+  FloTasks, About, Settings, FloClock, Terminal, and Disks.
+- Drawing and hit-tests follow the same order; click body/title to raise.
+- FloCalc and FloCalendar notify the kernel when opened via an append-only
+  KAPI fz_open_window entry. Opening an existing FloCalc only raises it.
+- Main's Floppy desktop button raises an already opened Main when behind
+  another window; when Main is topmost, the button continues to close it.
+- Float/keyboard focus and minimize control ownership updated.
+- Old full-screen app stack and the modal dialogs remain SEPARATE by design.
+- No taskbar or new visual assets were added, and FSM3 was not changed.
+
+IMPORTANT LIMITATIONS:
+- This is an initial integration and has not been compiled or boot-tested.
+- Modal dialogs remain modal and cannot be moved behind their parent.
+- FloText/FloFile/FloPaint/FloItge/Boil run through the pre-existing
+  fullscreen/exclusive-app layer. They have not been converted into
+  independent movable, overlapping windows.
+- User should not treat this as a finished all-windows rewrite.
+
+TEST ON A FRESH COPY (do NOT overwrite working images):
+1. build.bat: all NASM modules and kernel must assemble without errors.
+2. Boot with clean QEMU images. Open Main -> Programs -> FloCalc.
+3. Click the Floppy desktop button to bring Main to front. Open FloClock.
+4. Click exposed FloCalc window, then FloClock, then Main, repeat.
+5. Change FloCalc position and size and verify click/keyboard still works.
+6. Open About/Settings/Terminal/Disks/FloCalendar/FloTasks simultaneously,
+   and click the exposed body of each to bring it forward.
+7. Close/minimize/restore windows, check that others stay open.
+8. Open File/Save/Error/Shutdown modal dialogs; they must block normal input.
+9. Test fullscreen FloText/FloPaint/FloFile and basic FSM2/FSM3 operations.
+10. If anything fails, keep the previous FSM3_STAGE1 archive unchanged.
+
+NOT VALIDATED: NASM, QEMU, runtime UI, module-size ceiling or keyboard focus
+in all possible app combinations.

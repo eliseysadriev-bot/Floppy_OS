@@ -1,0 +1,52 @@
+Floppy OS 2.0 - GUI BUTTONS / DIALOG LAYERS PATCH
+STATUS: UNTESTED (static checks only; NASM build and QEMU were NOT run)
+
+Based on:
+  Floppy_OS_2_0_FSM3_STAGE2_FIX_TXT_AND_WINDOW_LAYER_UNTESTED.zip
+
+CHANGES:
+  1. Disks Create/Delete/Close/Format, Format? Cancel/Format,
+     Save/Open Save/Open/Cancel, Replace? Yes/No, FloFile Name OK/Cancel,
+     Task Manager row Close, and Error OK: button-down drawing
+     followed by action only on release over the same control.
+  2. Save changes? Cancel/Yes/No uses the same press/release behavior.
+  3. Format? now tracks independent screen coordinates. Dragging
+     its title moves the confirmation, NOT its parent Disks.
+  4. While Format? is active, clicking the visible Disks parent
+     can raise Disks above the confirmation (the format operation
+     remains blocked until confirmed/cancelled). A small Format
+     restore button is shown to bring confirmation forward again.
+  5. Replace? also tracks independent coordinates: dragging its
+     title moves the confirmation instead of Save/Open parent.
+  6. Mouse hover changes for independent confirmation titles.
+
+NOT CHANGED:
+  - FSM2 and FSM3 file formats, volume layouts or allocation logic.
+  - FSM3 Stage 2 streaming copy/file-size logic.
+  - The safety restriction against formatting physical C/O/I volumes.
+
+SAFETY:
+  Formatting still requires the original confirmation window.
+  Dragging/raising Disks does not authorize any format action.
+  Existing target validation and formatting routines are unchanged.
+
+STATIC VALIDATION:
+  - All original archive members retained; seven .asm/.inc files changed.
+  - No unresolved NASM local branch labels found by source scanner.
+  - No unsupported x86-32 byte registers introduced.
+  - ZIP CRC and entry integrity checked after packaging.
+
+MANUAL TEST CHECKLIST (build and QEMU only with user's permission):
+  1. Open Disks: press each button and observe distinct pressed state.
+  2. Press and drag cursor away before releasing; action must cancel.
+  3. Open Format?; drag its title: only child should move.
+  4. Click Disks behind Format?, then Format restore; both layer orders.
+  5. Cancel Format? and verify no disk was formatted.
+  6. Open Save/Open, trigger Replace? and drag its title.
+  7. Test Save changes?, FloFile Name, Task Manager Close, Error OK.
+  8. Verify Ctrl+C/Ctrl+V FSM3 previous patch behavior not regressed.
+  9. Verify TXT creation, moving / minimizing windows and dialogs.
+
+LIMITATIONS:
+  - This is a source patch, not a tested working release.
+  - These are native GUI control changes; no new applications added.

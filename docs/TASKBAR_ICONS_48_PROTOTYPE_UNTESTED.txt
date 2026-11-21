@@ -1,0 +1,1 @@
+48x48 prototype: derived with nearest-neighbor from exact user 32x32 originals (4). PNG size checked in source; NOT a fresh hand redraw. Buttons 56x56; six horizontally; panel x228..600, min height 64, default 68. Fixed tab x614. No build or emulator test. See zametki.txt.

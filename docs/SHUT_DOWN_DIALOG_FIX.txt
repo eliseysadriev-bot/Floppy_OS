@@ -1,0 +1,13 @@
+Floppy OS 2.0 - Shut Down dialog rework
+
+Based on the existing Save changes? dialog (sv_draw in kernel32.asm).
+
+- Power dialog position and window geometry are unchanged.
+- Standard wbtn renders and centers text on both buttons.
+- Equal 160x40 buttons, 16px gap, text fits at 16 px per character.
+- The question is centered using the measured string length.
+- Pointer press/release redraws the appropriate button state.
+- Escape, Enter, Cancel, and Shut Down behaviors are preserved.
+- No changes to the desktop Shut Down button, Bin, TVOS or file system.
+
+This source archive has NOT been built or run in QEMU.

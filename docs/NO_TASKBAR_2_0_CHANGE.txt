@@ -1,0 +1,14 @@
+Floppy OS 2.0 — taskbar removed (source change)
+===============================================
+
+Changed:
+- src/desktop/minimize.asm: removed pull handle, expandable task panel, program icon buttons, hover tooltip, resize and launcher code/pixel-run data.
+- Removed taskbar hit testing so no invisible panel absorbs clicks.
+- Kept EN/RU switch at its original location, including click/hover behavior.
+- Kept window minimize controls and other programs; launch/reopen programs via Main or FloFile as before.
+- src/kernel/kernel32.asm: removed taskbar-only main-loop tick and list redraw call. Existing mouse resize branches are unreachable and retained for minimal risk.
+- assets/taskbar_icons/*.png remain as archived source art for a future version, not displayed.
+- Compatibility: pan_height remains in Settings format but has no visible effect.
+- authors.txt and all applications/filesystems preserved.
+
+Build/QEMU: not yet confirmed by tools in this environment.
