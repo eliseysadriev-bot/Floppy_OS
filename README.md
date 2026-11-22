@@ -66,7 +66,6 @@ The project was created for fun, experimentation, and learning about low-level p
 
 ## Links
 
-- GitHub: https://github.com/eliseysadriev-bot/Floppy_OS
 - YouTube: https://www.youtube.com/@Xanex_OS
 - Telegram: https://t.me/+hLck_nnZCA0wZjIy
 
